@@ -1,73 +1,108 @@
 "use client";
-import { useEffect } from "react";
-import { createClient } from "graphql-ws";
-import { usePosts } from "@/store/useFeedStore";
-
-const wsClient = createClient({
-  url: "ws://localhost:4000/api/graphql",
-});
+import {
+  GET_POSTS,
+  LIKE_POST,
+  POST_ADDED,
+  POST_LIKED,
+} from "@/graphql/queries";
+import { getRandomUser } from "@/lib/getRandomUser";
+import { useMutation, useQuery, useSubscription } from "@apollo/client/react";
+import { useState } from "react";
 
 export default function Feed() {
-  const { posts, setPosts, addPost, likePost } = usePosts();
+  const { data, loading, error } = useQuery(GET_POSTS);
+  const [user] = useState(getRandomUser());
+  const [likePost] = useMutation(LIKE_POST, {
+    update(cache, { data }) {
+      if (!data?.likePost) return;
 
-  // Load initial posts
-  useEffect(() => {
-    fetch("http://localhost:4000/api/graphql", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query: "{ posts { id title content author likes createdAt } }",
-      }),
-    })
-      .then((res) => res.json())
-      .then((res) => setPosts(res.data.posts));
-  }, [setPosts]);
-
-  // Subscribe for new posts
-  useEffect(() => {
-    const dispose = wsClient.subscribe(
-      {
-        query:
-          "subscription { postAdded { id title content author likes createdAt } }",
-      },
-      {
-        next: (data) => {
-          if (data.data?.postAdded) {
-            addPost(data.data.postAdded);
-          }
+      cache.modify({
+        id: cache.identify({ __typename: "Post", id: data.likePost.id }),
+        fields: {
+          likes() {
+            return data.likePost.likes;
+          },
         },
-        error: console.error,
-        complete: () => console.log("done"),
-      }
-    );
-    return () => dispose();
-  }, [addPost]);
+      });
+    },
+  });
 
-  // Like mutation
+  useSubscription(POST_ADDED, {
+    onData: ({ client, data }) => {
+      if (!data.data?.postAdded) return;
+      const newPost = data.data.postAdded;
+
+      client.cache.modify({
+        fields: {
+          posts(existingPosts = []) {
+            // prevent duplicate if already added
+            if (
+              existingPosts.some(
+                (p: any) => p.__ref === client.cache.identify(newPost)
+              )
+            ) {
+              return existingPosts;
+            }
+            return [...existingPosts, newPost];
+          },
+        },
+      });
+    },
+  });
+
+  useSubscription(POST_LIKED, {
+    onData: ({ client, data }) => {
+      const updatedPost = data.data?.postLiked;
+      if (!updatedPost) return;
+
+      client.cache.modify({
+        fields: {
+          posts(existingPosts: any[] = []) {
+            return existingPosts.map((p: any) =>
+              client.cache.identify(p) === client.cache.identify(updatedPost)
+                ? {
+                    ...p,
+                    likes: updatedPost.likes,
+                    likedBy: updatedPost.likedBy,
+                  }
+                : p
+            );
+          },
+        },
+      });
+    },
+  });
+
+  if (loading) return <p>Loading posts...</p>;
+  if (error) return <p>Error loading feed 😢</p>;
+
   const handleLike = async (id: string) => {
-    await fetch("http://localhost:4000/api/graphql", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query: `mutation($id: ID!) { likePost(id: $id) { id likes } }`,
-        variables: { id },
-      }),
+    const currentLikes = data?.posts.find((p: any) => p.id === id)?.likes || 0;
+    await likePost({
+      variables: { id, user },
+      optimisticResponse: {
+        likePost: {
+          id,
+          __typename: "Post",
+          likes: currentLikes + 1,
+          likedBy: [user],
+        },
+      },
     });
-    likePost(id);
   };
 
   return (
     <div className="p-4">
       <h2 className="text-xl font-bold">Live Feed</h2>
       <ul className="space-y-3 mt-3">
-        {posts.map((p) => (
+        {data?.posts.map((p: any) => (
           <li key={p.id} className="border p-3 rounded">
             <div className="font-semibold">{p.title}</div>
             <div className="text-sm text-gray-600">by {p.author}</div>
             <p>{p.content}</p>
             <div className="flex items-center gap-2 mt-2">
               <button
-                onClick={() => handleLike(p.id)}
+                onClick={() => handleLike(p.id, p.likes)}
                 className="text-blue-500 underline"
               >
                 ❤️ {p.likes}

@@ -2,6 +2,7 @@ import { createPubSub } from "graphql-yoga";
 
 const pubsub = createPubSub<{
   POST_ADDED: [Post];
+  POST_LIKED: [Post];
 }>();
 
 type Post = {
@@ -10,6 +11,7 @@ type Post = {
   content: string;
   author: string;
   likes: number;
+  likedBy: string[];
   createdAt: string;
 };
 
@@ -21,6 +23,7 @@ export const typeDefs = `
     author: String!
     likes: Int!
     createdAt: String!
+    likedBy: [String!]!
   }
 
   type Query {
@@ -29,11 +32,12 @@ export const typeDefs = `
 
   type Mutation {
     addPost(title: String!, content: String!, author: String!): Post!
-    likePost(id: ID!): Post
+    likePost(id: ID!, user: String!): Post
   }
 
   type Subscription {
     postAdded: Post!
+    postLiked: Post!
   }
 `;
 
@@ -51,22 +55,33 @@ export const resolvers = {
         content,
         author,
         likes: 0,
+        likedBy: [],
         createdAt: new Date().toISOString(),
       };
       posts.push(post);
       pubsub.publish("POST_ADDED", post);
       return post;
     },
-    likePost: async (_: any, { id }: any) => {
+    likePost: async (_: any, { id, user }: any) => {
       const post = posts.find((p) => p.id === id);
       if (!post) return null;
-      post.likes++;
+
+      if (!post.likedBy.includes(user)) {
+        post.likedBy.push(user);
+        post.likes++;
+        pubsub.publish("POST_LIKED", post);
+      }
+
       return post;
     },
   },
   Subscription: {
     postAdded: {
       subscribe: () => pubsub.subscribe("POST_ADDED"),
+      resolve: (payload: Post) => payload,
+    },
+    postLiked: {
+      subscribe: () => pubsub.subscribe("POST_LIKED"),
       resolve: (payload: Post) => payload,
     },
   },

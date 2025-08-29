@@ -1,36 +1,30 @@
 "use client";
-import { usePosts } from "@/store/useFeedStore";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { ADD_POST } from "@/graphql/queries";
+import { useMutation } from "@apollo/client/react";
+import { getRandomUser } from "@/lib/getRandomUser";
 
 export default function AddPostForm() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [author, setAuthor] = useState("");
-  const addPostLocal = usePosts((s) => s.addPost);
+
+  //   assignning random username to user
+  useEffect(() => {
+    setAuthor(getRandomUser());
+  }, []);
+
+  const [addPost] = useMutation(ADD_POST);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch("http://localhost:4000/api/graphql", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query: `
-          mutation($title: String!, $content: String!, $author: String!) {
-            addPost(title: $title, content: $content, author: $author) {
-              id title content author likes createdAt
-            }
-          }
-        `,
-        variables: { title, content, author },
-      }),
+    if (!author) setAuthor(getRandomUser());
+    await addPost({
+      variables: { title, content, author },
     });
-    const data = await res.json();
-    if (data.data?.addPost) {
-      addPostLocal(data.data.addPost);
-    }
     setTitle("");
     setContent("");
-    setAuthor("");
+    setAuthor(getRandomUser());
   };
 
   return (

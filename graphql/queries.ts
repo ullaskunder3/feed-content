@@ -1,34 +1,60 @@
 import { gql } from "@apollo/client";
 
 export const GET_POSTS = gql`
-  query GetPosts($page: Int!, $limit: Int!) {
-    posts(page: $page, limit: $limit) {
+  query GetPosts {
+    posts {
       id
-      author
+      title
       content
+      author
       likes
-      timestamp
+      createdAt
     }
   }
 `;
 
-export const NEW_POST = gql`
-  subscription {
-    newPost {
+export const ADD_POST = gql`
+  mutation AddPost($title: String!, $content: String!, $author: String!) {
+    addPost(title: $title, content: $content, author: $author) {
       id
-      author
+      title
       content
+      author
       likes
-      timestamp
+      createdAt
     }
   }
 `;
 
 export const LIKE_POST = gql`
-  mutation LikePost($id: ID!) {
-    likePost(id: $id) {
+  mutation LikePost($id: ID!, $user: String!) {
+    likePost(id: $id, user: $user) {
       id
       likes
+      likedBy
+    }
+  }
+`;
+
+export const POST_ADDED = gql`
+  subscription OnPostAdded {
+    postAdded {
+      id
+      title
+      content
+      author
+      likes
+      createdAt
+    }
+  }
+`;
+
+export const POST_LIKED = gql`
+  subscription OnPostLiked {
+    postLiked {
+      id
+      likes
+      likedBy
     }
   }
 `;
