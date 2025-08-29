@@ -1,8 +1,8 @@
 import { gql } from "@apollo/client";
 
 export const GET_POSTS = gql`
-  query GetPosts {
-    posts {
+  query GetPosts($after: ID, $limit: Int!) {
+    posts(after: $after, limit: $limit) {
       id
       title
       content
