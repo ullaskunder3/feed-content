@@ -1,16 +1,17 @@
 import { createPubSub } from "graphql-yoga";
 
 const pubsub = createPubSub<{
-  POST_ADDED: [
-    {
-      id: string;
-      title: string;
-      content: string;
-      author: string;
-      createdAt: string;
-    }
-  ];
+  POST_ADDED: [Post];
 }>();
+
+type Post = {
+  id: string;
+  title: string;
+  content: string;
+  author: string;
+  likes: number;
+  createdAt: string;
+};
 
 export const typeDefs = `
   type Post {
@@ -18,6 +19,7 @@ export const typeDefs = `
     title: String!
     content: String!
     author: String!
+    likes: Int!
     createdAt: String!
   }
 
@@ -27,6 +29,7 @@ export const typeDefs = `
 
   type Mutation {
     addPost(title: String!, content: String!, author: String!): Post!
+    likePost(id: ID!): Post
   }
 
   type Subscription {
@@ -34,7 +37,7 @@ export const typeDefs = `
   }
 `;
 
-const posts: any[] = [];
+const posts: Post[] = [];
 
 export const resolvers = {
   Query: {
@@ -42,22 +45,29 @@ export const resolvers = {
   },
   Mutation: {
     addPost: async (_: any, { title, content, author }: any) => {
-      const post = {
+      const post: Post = {
         id: String(posts.length + 1),
         title,
         content,
         author,
+        likes: 0,
         createdAt: new Date().toISOString(),
       };
       posts.push(post);
       pubsub.publish("POST_ADDED", post);
       return post;
     },
+    likePost: async (_: any, { id }: any) => {
+      const post = posts.find((p) => p.id === id);
+      if (!post) return null;
+      post.likes++;
+      return post;
+    },
   },
   Subscription: {
     postAdded: {
       subscribe: () => pubsub.subscribe("POST_ADDED"),
-      resolve: (payload: any) => payload,
+      resolve: (payload: Post) => payload,
     },
   },
 };
