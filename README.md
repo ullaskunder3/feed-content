@@ -7,6 +7,15 @@ A **real-time social feed platform** built with **Next.js** (frontend) and **Gra
 
 ---
 
+! becasue of render.com the initila fetch will take time becasue of inactivity
+
+## DEMO
+
+| Screenshot 1 | Screenshot 2 | Screenshot 3 |
+|--------------|--------------|--------------|
+| <img width="300" src="https://github.com/user-attachments/assets/baf2200c-b273-4a79-8bfa-97999473d5d1" /> | <img width="300" src="https://github.com/user-attachments/assets/9dabe086-866e-451a-a626-03baeef0fcf1" /> | <img width="300" src="https://github.com/user-attachments/assets/e3a80f34-42f0-4f75-bc98-0b1a7514575d" /> |
+
+
 ## **Features**
 
 - **Real-time updates**: Posts and likes update instantly across clients using GraphQL subscriptions.
