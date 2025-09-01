@@ -1,15 +1,24 @@
 "use client";
 import { useState, useEffect } from "react";
+import type React from "react";
+
 import { ADD_POST } from "@/graphql/queries";
 import { useMutation } from "@apollo/client/react";
 import { getRandomUser } from "@/lib/getRandomUser";
 
-export default function AddPostForm() {
+type AddPostFormProps = {
+  onCancel?: () => void;
+  onSubmitted?: () => void;
+};
+
+export const AddPostForm: React.FC<AddPostFormProps> = ({
+  onCancel,
+  onSubmitted,
+}) => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [author, setAuthor] = useState("");
 
-  //   assignning random username to user
   useEffect(() => {
     setAuthor(getRandomUser());
   }, []);
@@ -19,16 +28,20 @@ export default function AddPostForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!author) setAuthor(getRandomUser());
+
     await addPost({
       variables: { title, content, author },
     });
+
     setTitle("");
     setContent("");
     setAuthor(getRandomUser());
+
+    if (onSubmitted) onSubmitted();
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2 p-4 border rounded">
+    <form onSubmit={handleSubmit} className="text-black space-y-2 p-4">
       <input
         value={author}
         onChange={(e) => setAuthor(e.target.value)}
@@ -47,15 +60,27 @@ export default function AddPostForm() {
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder="What's on your mind?"
-        className="border p-2 w-full"
+        className="border p-2 w-full min-h-20 max-h-80"
         required
+        maxLength={200}
       />
-      <button
-        type="submit"
-        className="bg-blue-500 text-white px-4 py-2 rounded"
-      >
-        Add Post
-      </button>
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+        >
+          Add Post
+        </button>
+        {onCancel && (
+          <button
+            type="button"
+            className="bg-gray-300 text-black px-4 py-2 rounded"
+            onClick={onCancel}
+          >
+            Cancel
+          </button>
+        )}
+      </div>
     </form>
   );
-}
+};

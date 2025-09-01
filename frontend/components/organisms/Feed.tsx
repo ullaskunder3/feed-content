@@ -95,8 +95,8 @@ export default function Feed() {
     return () => obs.disconnect();
   }, [loadMorePosts, hasMore, loadingMore]);
 
-  // handle optimistic like
   const handleLike = (id: string) => {
+    console.log("ID:", id);
     const currentLikes = posts.find((p) => p.id === id)?.likes ?? 0;
     likePost({
       variables: { id, user },
@@ -116,7 +116,9 @@ export default function Feed() {
     onData: ({ data }) => {
       const updated = data.data?.postLiked as TPost | undefined;
       if (!updated) return;
-      setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      setPosts((prev) =>
+        prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p))
+      );
     },
   });
 
@@ -158,14 +160,10 @@ export default function Feed() {
 
   return (
     <div
-      className="p-4 h-[80vh] border rounded"
+      className="mx-auto w-full max-w-3xl px-4 h-[80vh] pt-10"
       ref={containerRef}
       style={{ overflow: "auto" }}
     >
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xl font-bold">Live Feed</h2>
-      </div>
-
       {/* New-post banner (Twitter-like) */}
       {bufferCount > 0 && (
         <div className="sticky top-0 z-10 my-2">
@@ -181,21 +179,21 @@ export default function Feed() {
 
       <ul className="space-y-3">
         {posts.map((p) => (
-          <li key={p.id} className="border p-3 rounded flex gap-3">
+          <li key={p.id} className="border p-3 rounded flex gap-3 bg-gray-100">
             {renderAvatar(p.author, p.imageUrl ?? null)}
             <div className="flex-1">
               <div className="flex items-baseline justify-between">
-                <h3 className="font-semibold">{p.title}</h3>
-                <span className="text-xs text-gray-500">
+                <h3 className="font-semibold text-black">{p.title}</h3>
+                <span className="text-xs text-black">
                   {timeAgo(p.createdAt)}
                 </span>
               </div>
               <div className="text-sm text-gray-600 mb-1">by {p.author}</div>
-              <p className="mb-2">{p.content}</p>
+              <p className="mb-2 text-black/80">{p.content}</p>
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => handleLike(p.id)}
-                  className="text-blue-500 underline"
+                  className="text-gray-600"
                 >
                   ❤️ {formatCompactNumber(p.likes)}
                 </button>
@@ -210,10 +208,10 @@ export default function Feed() {
 
       {/* Loader / end indicator */}
       <div className="mt-3 text-center">
-        {loadingMore && <p className="text-gray-500">Loading more posts…</p>}
-        {!hasMore && <p className="text-gray-400">No more posts</p>}
+        {loadingMore && <p className="text-black">Loading more posts…</p>}
+        {!hasMore && <p className="text-black">No more posts</p>}
         {initialLoading && posts.length === 0 && (
-          <p className="text-gray-500">Loading posts…</p>
+          <p className="text-black">Loading posts…</p>
         )}
       </div>
     </div>

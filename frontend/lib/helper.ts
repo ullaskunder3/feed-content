@@ -29,3 +29,7 @@ export function timeAgo(dateString: string): string {
     day: "numeric",
   });
 }
+
+export function cx(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(" ");
+}
