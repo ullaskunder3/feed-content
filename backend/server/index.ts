@@ -1,7 +1,7 @@
 import { createServer } from "http";
 import { createSchema, createYoga } from "graphql-yoga";
 import { WebSocketServer } from "ws";
-import { resolvers, typeDefs } from "@/lib/schema";
+import { resolvers, typeDefs } from "../lib/schema";
 import { useServer } from "graphql-ws/use/ws";
 
 const PORT = Number(process.env.PORT) || 4000;
