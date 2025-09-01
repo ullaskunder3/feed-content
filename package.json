@@ -5,9 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "start:server": "tsx server/index.ts"
+    "start:server": "tsx server/index.ts",
+    "start": "next build && tsx server/index.ts"
   },
   "dependencies": {
     "@apollo/client": "^4.0.2",
