@@ -1,19 +1,10 @@
 "use client";
 import { create } from "zustand";
 
-type Post = {
-  id: string;
-  title: string;
-  content: string;
-  author: string;
-  likes: number;
-  createdAt: string;
-};
-
 type PostStore = {
-  posts: Post[];
-  setPosts: (posts: Post[]) => void;
-  addPost: (post: Post) => void;
+  posts: TPost[];
+  setPosts: (posts: TPost[]) => void;
+  addPost: (post: TPost) => void;
   likePost: (id: string) => void;
 };
 

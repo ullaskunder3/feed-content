@@ -9,28 +9,19 @@ import {
   POST_LIKED,
 } from "@/graphql/queries";
 import { getRandomUser } from "@/lib/getRandomUser";
-
-type Post = {
-  id: string;
-  title: string;
-  content: string;
-  author: string;
-  likes: number;
-  likedBy?: string[];
-  createdAt: string;
-  imageUrl?: string | null;
-};
+import { renderAvatar } from "@/lib/renderAvatar";
+import { formatCompactNumber, timeAgo } from "@/lib/helper";
 
 const PAGE_LIMIT = 5;
 
 export default function Feed() {
   const [user] = useState(() => getRandomUser());
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<TPost[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
   // newPostsBufferRef for new posts arriving via subscription when user is not at top
-  const newPostsBufferRef = useRef<Post[]>([]);
+  const newPostsBufferRef = useRef<TPost[]>([]);
   const [bufferCount, setBufferCount] = useState(0);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -40,7 +31,7 @@ export default function Feed() {
     data,
     loading: initialLoading,
     fetchMore,
-  } = useQuery(GET_POSTS, {
+  } = useQuery<TGetPostsResponse, TGetPostsVars>(GET_POSTS, {
     variables: { after: null, limit: PAGE_LIMIT },
     fetchPolicy: "cache-and-network",
   });
@@ -52,7 +43,7 @@ export default function Feed() {
     if (data?.posts) {
       setPosts((prev) => [
         ...prev,
-        ...data.posts.filter((p: Post) => !prev.some((x) => x.id === p.id)),
+        ...data.posts.filter((p: TPost) => !prev.some((x) => x.id === p.id)),
       ]);
       // if initial result size < page limit, there's no more
       if (data.posts.length < PAGE_LIMIT) setHasMore(false);
@@ -69,7 +60,7 @@ export default function Feed() {
         variables: { after: lastId, limit: PAGE_LIMIT },
       });
 
-      const newPosts: Post[] = res.data?.posts ?? [];
+      const newPosts: TPost[] = res.data?.posts ?? [];
       if (!newPosts.length) {
         setHasMore(false);
       } else {
@@ -121,18 +112,18 @@ export default function Feed() {
   };
 
   // subscription: postLiked -> update existing post
-  useSubscription(POST_LIKED, {
+  useSubscription<TPostLikedResponse>(POST_LIKED, {
     onData: ({ data }) => {
-      const updated = data.data?.postLiked as Post | undefined;
+      const updated = data.data?.postLiked as TPost | undefined;
       if (!updated) return;
       setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
     },
   });
 
   // subscription: postAdded -> if user near top prepend; otherwise buffer & show banner
-  useSubscription(POST_ADDED, {
+  useSubscription<TPostAddedResponse>(POST_ADDED, {
     onData: ({ data }) => {
-      const newPost = data.data?.postAdded as Post | undefined;
+      const newPost = data.data?.postAdded as TPost | undefined;
       if (!newPost) return;
 
       const container = containerRef.current;
@@ -163,29 +154,6 @@ export default function Feed() {
     setBufferCount(0);
     if (containerRef.current)
       containerRef.current.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const renderAvatar = (author: string, imageUrl?: string | null) => {
-    if (imageUrl) {
-      return (
-        <img
-          src={imageUrl}
-          alt={author}
-          className="w-8 h-8 rounded-full object-cover"
-        />
-      );
-    }
-    const initials = author
-      .split(" ")
-      .map((n) => n[0] ?? "")
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
-    return (
-      <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-xs font-bold">
-        {initials}
-      </div>
-    );
   };
 
   return (
@@ -219,7 +187,7 @@ export default function Feed() {
               <div className="flex items-baseline justify-between">
                 <h3 className="font-semibold">{p.title}</h3>
                 <span className="text-xs text-gray-500">
-                  {new Date(p.createdAt).toLocaleTimeString()}
+                  {timeAgo(p.createdAt)}
                 </span>
               </div>
               <div className="text-sm text-gray-600 mb-1">by {p.author}</div>
@@ -229,7 +197,7 @@ export default function Feed() {
                   onClick={() => handleLike(p.id)}
                   className="text-blue-500 underline"
                 >
-                  ❤️ {p.likes}
+                  ❤️ {formatCompactNumber(p.likes)}
                 </button>
               </div>
             </div>

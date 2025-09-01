@@ -1,19 +1,9 @@
 import { createPubSub } from "graphql-yoga";
 
 const pubsub = createPubSub<{
-  POST_ADDED: [Post];
-  POST_LIKED: [Post];
+  POST_ADDED: [TPost];
+  POST_LIKED: [TPost];
 }>();
-
-type Post = {
-  id: string;
-  title: string;
-  content: string;
-  author: string;
-  likes: number;
-  likedBy: string[];
-  createdAt: string;
-};
 
 export const typeDefs = `
   type Post {
@@ -41,7 +31,7 @@ export const typeDefs = `
   }
 `;
 
-const posts: Post[] = [
+const posts: TPost[] = [
   {
     id: "1",
     title: "Starlink Internet",
@@ -234,7 +224,10 @@ const posts: Post[] = [
 
 export const resolvers = {
   Query: {
-    posts: (_: any, { after, limit }: { after?: string; limit: number }) => {
+    posts: (
+      _parent: unknown,
+      { after, limit }: { after?: string; limit: number }
+    ): TPost[] => {
       let startIndex = 0;
       if (after) {
         const index = posts.findIndex((p) => p.id === after);
@@ -244,8 +237,11 @@ export const resolvers = {
     },
   },
   Mutation: {
-    addPost: async (_: any, { title, content, author }: any) => {
-      const post: Post = {
+    addPost: async (
+      _parent: unknown,
+      { title, content, author }: TAddPostArgs
+    ): Promise<TPost> => {
+      const post: TPost = {
         id: String(posts.length + 1),
         title,
         content,
@@ -258,7 +254,11 @@ export const resolvers = {
       pubsub.publish("POST_ADDED", post);
       return post;
     },
-    likePost: async (_: any, { id, user }: any) => {
+
+    likePost: async (
+      _parent: unknown,
+      { id, user }: TLikePostArgs
+    ): Promise<TPost | null> => {
       const post = posts.find((p) => p.id === id);
       if (!post) return null;
 
@@ -271,14 +271,15 @@ export const resolvers = {
       return post;
     },
   },
+
   Subscription: {
     postAdded: {
       subscribe: () => pubsub.subscribe("POST_ADDED"),
-      resolve: (payload: Post) => payload,
+      resolve: (payload: TPost) => payload,
     },
     postLiked: {
       subscribe: () => pubsub.subscribe("POST_LIKED"),
-      resolve: (payload: Post) => payload,
+      resolve: (payload: TPost) => payload,
     },
   },
 };

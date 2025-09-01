@@ -4,6 +4,8 @@ import { WebSocketServer } from "ws";
 import { resolvers, typeDefs } from "@/lib/schema";
 import { useServer } from "graphql-ws/use/ws";
 
+const PORT = Number(process.env.PORT) || 4000;
+
 async function main() {
   const yoga = createYoga({
     schema: createSchema({
@@ -19,7 +21,7 @@ async function main() {
   const wsServer = new WebSocketServer({ server, path: "/api/graphql" });
   useServer({ schema: yoga.getEnveloped().schema }, wsServer);
 
-  server.listen(4000, () => {
+  server.listen(PORT, () => {
     console.log(
       "🚀 GraphQL server running at http://localhost:4000/api/graphql"
     );
@@ -27,4 +29,7 @@ async function main() {
   });
 }
 
-main();
+main().catch((err) => {
+  console.error("Server failed:", err);
+  process.exit(1);
+});
